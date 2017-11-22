@@ -1,32 +1,61 @@
 import React, { Component } from 'react';
 import './App.css';
-import * as firebase from 'firebase';
+import firebase from 'firebase/app';
+import 'firebase/database';
+import { config } from './config/config';
+import User from './User/User.jsx';
+import UserForm from './UserForm/UserForm.jsx';
 
 class App extends Component {
   constructor() {
       super();
 
+      this.addUser = this.addUser.bind(this);
+
+      this.app = firebase.initializeApp(config);
+      this.database = this.app.database().ref().child('users');
+
       this.state = {
-          speed : 10
+          users: []
       };
   }
 
-  componentDidMount() {
-    const rootRef = firebase.database().ref();
-    const speedRef = rootRef.child('speed');
+    componentWillMount() {
+      const prevUsers = this.state.users;
 
-      speedRef.on('value', snap => {
-          console.log(snap.val());
+      this.database.on('child_added', snap => {
+          prevUsers.push({
+              id: snap.key,
+             login: snap.val().login
+         })
+
           this.setState({
-             speed : snap.val()
-          });
+              users: prevUsers
+          })
       });
-  };
+
+  }
+
+  addUser(user) {
+      this.database.push().set({ login: user, some: user });
+  }
 
   render() {
     return (
       <div className="App">
-        <h1>{this.state.speed}</h1>
+          {
+              this.state.users.map((user) => {
+                  return (
+                      <User userLogin={user.login}
+                            userId={user.id}
+                            key={user.id}
+                      />
+                  )
+              })
+          }
+          <div>
+              <UserForm addUser={this.addUser} />
+          </div>
       </div>
     );
   }
